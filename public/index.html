@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Join the waitlist</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Join the waitlist</h1>
+    <p class="subtext">Register your email ID</p>
+    
+    <form id="waitlistForm">
+      <input 
+        type="email" 
+        id="emailInput" 
+        name="email" 
+        placeholder="your@email.com" 
+        required
+        autocomplete="email"
+      >
+      <button type="submit">Join</button>
+    </form>
+
+    <div id="message" class="message"></div>
+    
+    <div class="pcb-preview">
+      <p class="preview-label">Sneak peek</p>
+      <div class="pcb-container">
+        <svg class="pcb-svg" viewBox="0 0 300 200">
+          <!-- Grid background -->
+          <defs>
+            <pattern id="mini-grid" width="5" height="5" patternUnits="userSpaceOnUse">
+              <path d="M 5 0 L 0 0 0 5" fill="none" stroke="#e8e8e8" strokeWidth="0.3" />
+            </pattern>
+          </defs>
+          <rect width="300" height="200" fill="url(#mini-grid)" />
+          
+          <!-- PCB Base -->
+          <rect x="50" y="30" width="200" height="140" fill="#2d5016" opacity="0.15" rx="2" />
+          
+          <!-- Power rails -->
+          <rect x="50" y="25" width="200" height="10" fill="#ff0000" opacity="0.2" />
+          <rect x="50" y="165" width="200" height="10" fill="#0066cc" opacity="0.2" />
+          
+          <!-- Pads -->
+          <circle cx="100" cy="30" r="3" fill="#ff6600" stroke="#000" strokeWidth="0.5" />
+          <circle cx="150" cy="30" r="3" fill="#ff6600" stroke="#000" strokeWidth="0.5" />
+          <circle cx="200" cy="30" r="3" fill="#ff6600" stroke="#000" strokeWidth="0.5" />
+          <circle cx="100" cy="170" r="3" fill="#0066cc" stroke="#000" strokeWidth="0.5" />
+          <circle cx="150" cy="170" r="3" fill="#0066cc" stroke="#000" strokeWidth="0.5" />
+          <circle cx="200" cy="170" r="3" fill="#0066cc" stroke="#000" strokeWidth="0.5" />
+          <circle cx="120" cy="100" r="2.5" fill="#cccccc" stroke="#000" strokeWidth="0.5" />
+          <circle cx="180" cy="100" r="2.5" fill="#cccccc" stroke="#000" strokeWidth="0.5" />
+          
+          <!-- Placed components will be added here -->
+          <g id="placedComponents"></g>
+        </svg>
+        
+        <!-- Component palette -->
+        <div class="component-palette">
+          <div class="component-item" draggable="true" data-type="battery">
+            <div class="comp-box" style="background: #FFD700;"></div>
+            <span>9V</span>
+          </div>
+          <div class="component-item" draggable="true" data-type="resistor">
+            <div class="comp-box" style="background: #8B4513;"></div>
+            <span>R</span>
+          </div>
+          <div class="component-item" draggable="true" data-type="led">
+            <div class="comp-box" style="background: #FF0000;"></div>
+            <span>LED</span>
+          </div>
+          <div class="component-item" draggable="true" data-type="lightbulb">
+            <div class="comp-box bulb-icon" style="background: #FFD700;"></div>
+            <span>BULB</span>
+          </div>
+          <div class="component-item" draggable="true" data-type="wire">
+            <div class="comp-box wire-icon" style="background: #000000;"></div>
+            <span>WIRE</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Connection Steps -->
+      <div class="connection-steps">
+        <p class="steps-title">How to connect a light bulb</p>
+        <ol class="steps-list">
+          <li>Drag a <strong>9V battery</strong> to the PCB</li>
+          <li>Drag a <strong>light bulb</strong> anywhere on the PCB</li>
+          <li>The bulb will light up automatically when both are on the board</li>
+          <li>Use <strong>wires</strong> to connect components (click ↻ to rotate)</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <div id="petalsContainer" class="petals-container"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
+
