@@ -10,7 +10,7 @@ import Src from './models/SrcSchema.js';
 
 
 const app = express();
-const PORT = 3000;
+const PORT = 3434;
 app.set('view engine', 'ejs')
 app.use(express.static('public'))
 app.use(express.json());
