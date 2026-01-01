@@ -122,8 +122,13 @@ app.post('/api/register', async (req, res) => {
   }
 
   const inviteSrc = await Src.findOne({code: src});
-  
-  inviteSrc.registrations += 1;
+
+  if(inviteSrc){
+    
+    inviteSrc.registrations += 1;
+    await inviteSrc.save()
+  }
+
 
 
   const newEmailEntry = new EmailEntry({
@@ -137,7 +142,6 @@ app.post('/api/register', async (req, res) => {
 
   try {
     await newEmailEntry.save()
-    await inviteSrc.save()
     return res.status(200).json({
       success: true,
       message: 'Email registered successfully.'
