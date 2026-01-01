@@ -1,34 +1,31 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+import 'dotenv/config'
+import express from 'express'
+import mongoose from 'mongoose';
+import path from 'path';
+import geoip from 'geoip-country';
+import cookieParser from 'cookie-parser';
+
+import EmailEntry from './models/EmailEntry.js';
+import Src from './models/SrcSchema.js';
+
 
 const app = express();
 const PORT = 3000;
-
-// Middleware
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.set('view engine', 'ejs')
+app.use(express.static('public'))
+app.use(express.json());
+app.use(express.urlencoded({
+    extended: true
+}))
 app.use(express.static('public'));
+app.use(cookieParser());
 
-// Initialize database
-const db = new sqlite3.Database('waitlist.db', (err) => {
-  if (err) {
-    console.error('Error opening database:', err);
-  } else {
-    console.log('Database connected');
-    // Create table if it doesn't exist
-    db.run(`CREATE TABLE IF NOT EXISTS emails (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`, (err) => {
-      if (err) {
-        console.error('Error creating table:', err);
-      }
-    });
-  }
-});
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log('[+] Database Connected');
+  })
+  .catch(err => console.log(err))
+
 
 // Email validation
 function isValidEmail(email) {
@@ -36,84 +33,128 @@ function isValidEmail(email) {
   return emailRegex.test(email);
 }
 
+
+app.get('/', async (req, res) => {
+  try {
+    const src = req.query.src?.toLowerCase().trim();
+    const COOLDOWN_MS = 5 * 60 * 1000;
+
+    if (src) {
+      const visitCookie = `src_${src}`;
+
+      if (!req.cookies[visitCookie]) {
+        await Src.updateOne(
+          { code: src },
+          { $inc: { visits: 1 } }
+        );
+
+        res.cookie(visitCookie, '1', {
+          maxAge: COOLDOWN_MS,
+          httpOnly: true,
+          sameSite: 'lax'
+        });
+      }
+    }
+
+    res.render('index', { src: src || null });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
 // API endpoint to register email
-app.post('/api/register', (req, res) => {
-  const { email } = req.body;
+app.post('/api/register', async (req, res) => {
+  const {
+    email,
+    src
+  } = req.body;
+  
 
   // Validate email
   if (!email || !email.trim()) {
-    return res.status(400).json({ 
-      success: false, 
-      message: 'Email is required' 
+    return res.status(400).json({
+      success: false,
+      message: 'Email is required'
     });
   }
 
   const emailTrimmed = email.trim().toLowerCase();
 
   if (!isValidEmail(emailTrimmed)) {
-    return res.status(400).json({ 
-      success: false, 
-      message: 'Invalid email format' 
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid email format'
     });
   }
 
-  // Check for duplicates and insert
-  db.get('SELECT email FROM emails WHERE email = ?', [emailTrimmed], (err, row) => {
-    if (err) {
-      console.error('Database error:', err);
-      return res.status(500).json({ 
-        success: false, 
-        message: 'Server error. Please try again.' 
-      });
-    }
 
-    if (row) {
-      return res.status(409).json({ 
-        success: false, 
-        message: 'This email is already registered' 
-      });
-    }
-
-    // Insert new email
-    db.run('INSERT INTO emails (email) VALUES (?)', [emailTrimmed], function(err) {
-      if (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({ 
-          success: false, 
-          message: 'Server error. Please try again.' 
-        });
-      }
-
-      res.json({ 
-        success: true, 
-        message: 'Successfully registered. Thank you!' 
-      });
+  // checking if the email already exists in the database
+  const emailExists = await EmailEntry.findOne({
+    email: emailTrimmed
+  });
+  if (emailExists) {
+    return res.status(409).json({
+      success: false,
+      message: 'This email is already registered.'
     });
-  });
-});
+  }
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Server is running' });
-});
+  const ip = req.ip;
 
-// Get waitlist count (optional endpoint)
-app.get('/api/count', (req, res) => {
-  db.get('SELECT COUNT(*) as count FROM emails', (err, row) => {
-    if (err) {
-      return res.status(500).json({ error: 'Database error' });
+  const geo = geoip.lookup(ip);
+
+  // api abuse prevention
+  // there is 30 second second cooldown on email entries for the same ip
+  const lastEmailEntry = await EmailEntry.findOne({ ip }).sort({ createdAt: -1 }).lean();
+  if (lastEmailEntry) {
+    const now = Date.now();
+    const lastTime = new Date(lastEmailEntry.createdAt).getTime();
+
+    const diffInSeconds = (now - lastTime) / 1000;
+    // 30 seconds cool downnn
+    if (diffInSeconds < 30) {
+      return res.status(429).json({
+        success: false,
+        message: 'Please wait for some time before submitting again.'
+      });
     }
-    res.json({ count: row.count });
-  });
+  }
+
+  const inviteSrc = await Src.findOne({code: src});
+  
+  inviteSrc.registrations += 1;
+
+
+  const newEmailEntry = new EmailEntry({
+    email: emailTrimmed,
+    time: Date.now(),
+    ip: req.ip,
+    locationCode: geo ? geo.country : null,
+    src: inviteSrc?inviteSrc.code:null
+  })
+
+
+  try {
+    await newEmailEntry.save()
+    await inviteSrc.save()
+    return res.status(200).json({
+      success: true,
+      message: 'Email registered successfully.'
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal Server Error'
+    });
+  }
 });
+
+
+
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`Database: waitlist.db`);
-  console.log(`API endpoints:`);
-  console.log(`  POST /api/register - Register email`);
-  console.log(`  GET  /api/health - Health check`);
-  console.log(`  GET  /api/count - Get waitlist count`);
+  console.log(`[+] Server running on http://localhost:${PORT}`);
 });
-

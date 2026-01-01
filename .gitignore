@@ -2,5 +2,5 @@ node_modules/
 waitlist.db
 .DS_Store
 *.log
-
+.env
 

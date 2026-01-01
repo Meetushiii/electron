@@ -2,7 +2,6 @@ const form = document.getElementById('waitlistForm');
 const emailInput = document.getElementById('emailInput');
 const messageDiv = document.getElementById('message');
 const petalsContainer = document.getElementById('petalsContainer');
-
 function showMessage(text, isError = false) {
   messageDiv.textContent = text;
   messageDiv.className = isError ? 'message error' : 'message success';
@@ -419,30 +418,37 @@ form.addEventListener('submit', async (e) => {
   submitButton.textContent = 'Joining...';
   messageDiv.textContent = '';
 
-  try {
-    const response = await fetch('/api/register', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email }),
-    });
 
-    const data = await response.json();
+try {
+  const payload = { email };
 
-    if (response.ok && data.success) {
-      showMessage(data.message, false);
-      emailInput.value = '';
-      // Trigger rose petals animation
-      createRosePetals();
-    } else {
-      showMessage(data.message || 'An error occurred', true);
-    }
-  } catch (error) {
-    showMessage('Network error. Please try again.', true);
-  } finally {
-    submitButton.disabled = false;
-    submitButton.textContent = 'Join';
+  if (SRC_CODE) {
+    payload.src = SRC_CODE;
   }
+
+  const response = await fetch('/api/register', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (response.ok && data.success) {
+    showMessage(data.message, false);
+    emailInput.value = '';
+    createRosePetals();
+  } else {
+    showMessage(data.message || 'An error occurred', true);
+  }
+} catch (error) {
+  showMessage('Network error. Please try again.', true);
+} finally {
+  submitButton.disabled = false;
+  submitButton.textContent = 'Join';
+}
+
 });
 
