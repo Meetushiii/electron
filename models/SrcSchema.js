@@ -7,7 +7,7 @@ const SrcSchema = new mongoose.Schema({
 })
 
 
-const Src = new mongoose.model('Src', SrcSchema);
+const Src = mongoose.model('Src', SrcSchema);
 
 
 export default Src;

@@ -8,6 +8,6 @@ const EmailEntrySchema = new mongoose.Schema({
     src: String    
 }, {timestamps: true})
 
-const EmailEntry = new mongoose.model('EmailEntry', EmailEntrySchema);
+const EmailEntry = mongoose.model('EmailEntry', EmailEntrySchema);
 
 export default EmailEntry;
